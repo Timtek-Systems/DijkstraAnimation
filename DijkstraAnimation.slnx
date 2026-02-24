@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="DijkstraAnimation.App/DijkstraAnimation.App.csproj" />
+  <Project Path="DummyClassLibrary/DummyClassLibrary.csproj" />
+</Solution>
