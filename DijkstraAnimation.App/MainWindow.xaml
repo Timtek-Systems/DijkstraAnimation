@@ -26,15 +26,137 @@
                 <TextBlock x:Name="SpeedText" Text="20" Foreground="White" FontWeight="SemiBold"
                            VerticalAlignment="Center" Margin="6,0,24,0" Width="30" FontSize="13"/>
 
-                <Button x:Name="StartButton" Content="▶  Generate &amp; Run" Padding="14,7"
+                <TextBlock Text="Algorithm:" Foreground="#CCD" VerticalAlignment="Center"
+                           Margin="0,0,6,0" FontSize="13"/>
+                <ComboBox x:Name="AlgorithmCombo" Width="100" VerticalAlignment="Center" Margin="0,0,24,0">
+                    <ComboBoxItem Content="Dijkstra" IsSelected="True"/>
+                    <ComboBoxItem Content="A*"/>
+                </ComboBox>
+
+                <Button x:Name="GenerateButton" Content="⚄  Generate" Padding="14,7"
                         FontSize="13" FontWeight="SemiBold"
+                        Background="#4A4A6A" Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                <Button x:Name="RunButton" Content="▶  Run" Padding="14,7" Margin="10,0,0,0"
+                        FontSize="13" FontWeight="SemiBold" IsEnabled="False"
                         Background="#4A90D9" Foreground="White" BorderThickness="0" Cursor="Hand"/>
                 <Button x:Name="ResetButton" Content="⟳  Reset" Padding="14,7" Margin="10,0,0,0"
                         FontSize="13"
                         Background="#4A4A6A" Foreground="White" BorderThickness="0" Cursor="Hand"/>
 
-                <TextBlock x:Name="StatusText" Text="Click Generate &amp; Run to begin"
+                <TextBlock Text="Time:" Foreground="#CCD" VerticalAlignment="Center"
+                           Margin="24,0,6,0" FontSize="13"/>
+                <TextBlock x:Name="ElapsedTimeText" Text="—" Foreground="White" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Width="70" FontSize="13"/>
+
+                <TextBlock x:Name="StatusText" Text="Click Generate to create a graph"
                            Foreground="#888" VerticalAlignment="Center" Margin="24,0,0,0" FontSize="13"/>
+            </WrapPanel>
+        </Border>
+
+        <!-- Camera motion algorithm toolbar -->
+        <Border DockPanel.Dock="Top" Background="#1E1E2E" Padding="14,8"
+                BorderBrush="#2A2A4A" BorderThickness="0,0,0,1">
+            <WrapPanel VerticalAlignment="Center">
+                <TextBlock Text="Camera Motion:" Foreground="#CCD" VerticalAlignment="Center"
+                           Margin="0,0,6,0" FontSize="13"/>
+                <ComboBox x:Name="MotionCombo" Width="140" VerticalAlignment="Center" Margin="0,0,24,0">
+                    <ComboBoxItem Content="Exponential"/>
+                    <ComboBoxItem Content="Gravity" IsSelected="True"/>
+                    <ComboBoxItem Content="Gource"/>
+                </ComboBox>
+
+                <StackPanel x:Name="ExponentialPanel" Orientation="Horizontal" Visibility="Collapsed">
+                    <TextBlock Text="Speed:" Foreground="#CCD" VerticalAlignment="Center"
+                               Margin="0,0,6,0" FontSize="13"/>
+                    <Slider x:Name="ExpSpeedSlider" Minimum="0.2" Maximum="20" Value="4"
+                            Width="160" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="ExpSpeedText" Text="4.0" Foreground="White" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="6,0,24,0" Width="30" FontSize="13"/>
+                </StackPanel>
+
+                <StackPanel x:Name="GravityPanel" Orientation="Horizontal" Visibility="Visible">
+                    <TextBlock Text="Gravity:" Foreground="#CCD" VerticalAlignment="Center"
+                               Margin="0,0,6,0" FontSize="13"/>
+                    <Slider x:Name="GravitySlider" Minimum="0.2" Maximum="20" Value="4"
+                            Width="160" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="GravityText" Text="4.0" Foreground="White" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="6,0,24,0" Width="30" FontSize="13"/>
+
+                    <TextBlock Text="Damping:" Foreground="#CCD" VerticalAlignment="Center"
+                               Margin="0,0,6,0" FontSize="13"/>
+                    <Slider x:Name="DampingSlider" Minimum="0" Maximum="20" Value="4"
+                            Width="160" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="DampingText" Text="4.0" Foreground="White" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="6,0,24,0" Width="30" FontSize="13"/>
+
+                    <TextBlock Text="Max Velocity:" Foreground="#CCD" VerticalAlignment="Center"
+                               Margin="0,0,6,0" FontSize="13"/>
+                    <Slider x:Name="MaxVelocitySlider" Minimum="50" Maximum="5000" Value="2000"
+                            Width="160" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="MaxVelocityText" Text="2000" Foreground="White" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="6,0,24,0" Width="40" FontSize="13"/>
+                </StackPanel>
+
+                <StackPanel x:Name="GourcePanel" Orientation="Horizontal" Visibility="Collapsed">
+                    <TextBlock Text="Pan Speed:" Foreground="#CCD" VerticalAlignment="Center"
+                               Margin="0,0,6,0" FontSize="13"/>
+                    <Slider x:Name="GourcePanSpeedSlider" Minimum="0.2" Maximum="20" Value="2"
+                            Width="160" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="GourcePanSpeedText" Text="2.0" Foreground="White" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="6,0,24,0" Width="30" FontSize="13"/>
+
+                    <TextBlock Text="Max Speed:" Foreground="#CCD" VerticalAlignment="Center"
+                               Margin="0,0,6,0" FontSize="13"/>
+                    <Slider x:Name="GourceMaxSpeedSlider" Minimum="50" Maximum="5000" Value="1500"
+                            Width="160" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="GourceMaxSpeedText" Text="1500" Foreground="White" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="6,0,24,0" Width="40" FontSize="13"/>
+                </StackPanel>
+            </WrapPanel>
+        </Border>
+
+        <!-- Zoom strategy toolbar -->
+        <Border DockPanel.Dock="Top" Background="#1E1E2E" Padding="14,8"
+                BorderBrush="#2A2A4A" BorderThickness="0,0,0,1">
+            <WrapPanel VerticalAlignment="Center">
+                <TextBlock Text="Zoom Ease:" Foreground="#CCD" VerticalAlignment="Center"
+                           Margin="0,0,6,0" FontSize="13"/>
+                <Slider x:Name="ZoomEaseSlider" Minimum="0.5" Maximum="30" Value="6"
+                        Width="160" VerticalAlignment="Center"/>
+                <TextBlock x:Name="ZoomEaseText" Text="6.0" Foreground="White" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="6,0,24,0" Width="30" FontSize="13"/>
+
+                <TextBlock Text="Zoom Strategy:" Foreground="#CCD" VerticalAlignment="Center"
+                           Margin="0,0,6,0" FontSize="13"/>
+                <ComboBox x:Name="ZoomCombo" Width="140" VerticalAlignment="Center" Margin="0,0,24,0">
+                    <ComboBoxItem Content="Fixed Radius" IsSelected="True"/>
+                    <ComboBoxItem Content="Frontier Nodes"/>
+                </ComboBox>
+
+                <StackPanel x:Name="FixedRadiusPanel" Orientation="Horizontal" Visibility="Visible">
+                    <TextBlock Text="Radius:" Foreground="#CCD" VerticalAlignment="Center"
+                               Margin="0,0,6,0" FontSize="13"/>
+                    <Slider x:Name="FixedRadiusSlider" Minimum="30" Maximum="600" Value="150"
+                            Width="160" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="FixedRadiusText" Text="150" Foreground="White" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="6,0,24,0" Width="40" FontSize="13"/>
+                </StackPanel>
+
+                <StackPanel x:Name="FrontierPanel" Orientation="Horizontal" Visibility="Collapsed">
+                    <TextBlock Text="Padding:" Foreground="#CCD" VerticalAlignment="Center"
+                               Margin="0,0,6,0" FontSize="13"/>
+                    <Slider x:Name="FrontierPaddingSlider" Minimum="0" Maximum="300" Value="60"
+                            Width="160" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="FrontierPaddingText" Text="60" Foreground="White" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="6,0,24,0" Width="40" FontSize="13"/>
+
+                    <TextBlock Text="Min Radius:" Foreground="#CCD" VerticalAlignment="Center"
+                               Margin="0,0,6,0" FontSize="13"/>
+                    <Slider x:Name="FrontierMinRadiusSlider" Minimum="10" Maximum="400" Value="80"
+                            Width="160" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="FrontierMinRadiusText" Text="80" Foreground="White" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="6,0,24,0" Width="40" FontSize="13"/>
+                </StackPanel>
             </WrapPanel>
         </Border>
 

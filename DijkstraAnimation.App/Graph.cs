@@ -41,7 +41,7 @@ public static class GraphGenerator
     {
         var rng = seed >= 0 ? new Random(seed) : new Random();
         var nodes = PlaceNodes(nodeCount, rng);
-        var edges = ConnectNodes(nodes, nodeCount, rng);
+        var edges = ConnectNodes(nodes, nodeCount);
         return new Graph(nodes, edges);
     }
 
@@ -106,95 +106,127 @@ public static class GraphGenerator
         return nodes;
     }
 
-    private static List<GraphEdge> ConnectNodes(IReadOnlyList<GraphNode> nodes, int n, Random rng)
+    /// <summary>
+    /// Connects nodes into a planar graph (no crossing edges) using a Delaunay
+    /// triangulation of the node positions. A Delaunay triangulation is guaranteed to be
+    /// a valid planar straight-line embedding - i.e. its edges never cross - and, for 3 or
+    /// more non-degenerate points, is automatically fully connected, while still giving
+    /// each node several neighbors (average degree ~6) so Dijkstra has interesting
+    /// alternate routes to explore.
+    /// </summary>
+    private static List<GraphEdge> ConnectNodes(IReadOnlyList<GraphNode> nodes, int n)
     {
-        int k = Math.Clamp(4, 2, Math.Min(6, n - 1));
+        if (n < 2) return [];
+
+        if (n == 2)
+            return [new GraphEdge(0, 1, Distance(nodes[0], nodes[1]))];
+
+        var triangles = TriangulateDelaunay(nodes);
+
         var edgeSet = new HashSet<long>();
         var edges = new List<GraphEdge>();
 
         long EdgeKey(int a, int b) => (long)Math.Min(a, b) * n + Math.Max(a, b);
 
-        // K-nearest neighbors
-        for (int i = 0; i < n; i++)
+        void TryAddEdge(int a, int b)
         {
-            var dists = new List<(int Id, double Dist)>(n);
-            for (int j = 0; j < n; j++)
-            {
-                if (i == j) continue;
-                double dx = nodes[i].X - nodes[j].X;
-                double dy = nodes[i].Y - nodes[j].Y;
-                dists.Add((j, Math.Sqrt(dx * dx + dy * dy)));
-            }
-
-            dists.Sort((a, b) => a.Dist.CompareTo(b.Dist));
-
-            for (int m = 0; m < Math.Min(k, dists.Count); m++)
-            {
-                long key = EdgeKey(i, dists[m].Id);
-                if (edgeSet.Add(key))
-                    edges.Add(new GraphEdge(i, dists[m].Id, dists[m].Dist));
-            }
+            if (edgeSet.Add(EdgeKey(a, b)))
+                edges.Add(new GraphEdge(a, b, Distance(nodes[a], nodes[b])));
         }
 
-        // Ensure connectivity via union-find
-        var parent = Enumerable.Range(0, n).ToArray();
-        var rank = new int[n];
-
-        int Find(int x)
+        foreach (var t in triangles)
         {
-            while (parent[x] != x) { parent[x] = parent[parent[x]]; x = parent[x]; }
-            return x;
-        }
-
-        void Union(int a, int b)
-        {
-            a = Find(a); b = Find(b);
-            if (a == b) return;
-            if (rank[a] < rank[b]) (a, b) = (b, a);
-            parent[b] = a;
-            if (rank[a] == rank[b]) rank[a]++;
-        }
-
-        foreach (var edge in edges)
-            Union(edge.SourceId, edge.TargetId);
-
-        // Connect any disconnected components to component 0
-        for (int i = 1; i < n; i++)
-        {
-            if (Find(i) == Find(0)) continue;
-
-            double best = double.MaxValue;
-            int bestJ = 0;
-            for (int j = 0; j < n; j++)
-            {
-                if (Find(j) != Find(0)) continue;
-                double dx = nodes[i].X - nodes[j].X;
-                double dy = nodes[i].Y - nodes[j].Y;
-                double d = Math.Sqrt(dx * dx + dy * dy);
-                if (d < best) { best = d; bestJ = j; }
-            }
-
-            long key = EdgeKey(i, bestJ);
-            if (edgeSet.Add(key))
-                edges.Add(new GraphEdge(i, bestJ, best));
-            Union(i, bestJ);
-        }
-
-        // Extra random edges for alternative paths
-        int extra = n / 3;
-        for (int e = 0; e < extra; e++)
-        {
-            int a = rng.Next(n), b = rng.Next(n);
-            if (a == b) continue;
-            long key = EdgeKey(a, b);
-            if (edgeSet.Add(key))
-            {
-                double dx = nodes[a].X - nodes[b].X;
-                double dy = nodes[a].Y - nodes[b].Y;
-                edges.Add(new GraphEdge(a, b, Math.Sqrt(dx * dx + dy * dy)));
-            }
+            TryAddEdge(t.A, t.B);
+            TryAddEdge(t.B, t.C);
+            TryAddEdge(t.C, t.A);
         }
 
         return edges;
+    }
+
+    private readonly record struct Triangle(int A, int B, int C);
+
+    /// <summary>
+    /// Computes the Delaunay triangulation of the given points using the Bowyer-Watson
+    /// algorithm, returning the resulting triangles indexed into <paramref name="nodes"/>.
+    /// </summary>
+    private static List<Triangle> TriangulateDelaunay(IReadOnlyList<GraphNode> nodes)
+    {
+        int n = nodes.Count;
+        var pts = new List<GraphNode>(nodes);
+
+        // A super-triangle large enough to contain every input point, so the incremental
+        // algorithm always has a valid starting triangulation to insert points into.
+        double minX = nodes.Min(p => p.X), minY = nodes.Min(p => p.Y);
+        double maxX = nodes.Max(p => p.X), maxY = nodes.Max(p => p.Y);
+        double deltaMax = Math.Max(maxX - minX, maxY - minY) * 10 + 10;
+        double midX = (minX + maxX) / 2, midY = (minY + maxY) / 2;
+
+        int superA = n, superB = n + 1, superC = n + 2;
+        pts.Add(new GraphNode(superA, midX - 20 * deltaMax, midY - deltaMax));
+        pts.Add(new GraphNode(superB, midX, midY + 20 * deltaMax));
+        pts.Add(new GraphNode(superC, midX + 20 * deltaMax, midY - deltaMax));
+
+        var triangles = new List<Triangle> { new(superA, superB, superC) };
+
+        for (int i = 0; i < n; i++)
+        {
+            var p = pts[i];
+
+            var badTriangles = triangles.Where(t => InCircumcircle(pts[t.A], pts[t.B], pts[t.C], p)).ToList();
+
+            // The boundary of the union of "bad" triangles forms a polygon hole; edges
+            // shared by two bad triangles are interior to the hole and are discarded,
+            // leaving only the edges that appear exactly once.
+            var edgeCount = new Dictionary<(int, int), int>();
+            void CountEdge(int a, int b)
+            {
+                var key = a < b ? (a, b) : (b, a);
+                edgeCount[key] = edgeCount.GetValueOrDefault(key) + 1;
+            }
+
+            foreach (var t in badTriangles)
+            {
+                CountEdge(t.A, t.B);
+                CountEdge(t.B, t.C);
+                CountEdge(t.C, t.A);
+            }
+
+            triangles.RemoveAll(badTriangles.Contains);
+
+            foreach (var ((a, b), count) in edgeCount)
+            {
+                if (count == 1)
+                    triangles.Add(new Triangle(a, b, i));
+            }
+        }
+
+        // Discard triangles that still reference a super-triangle vertex.
+        triangles.RemoveAll(t => t.A >= n || t.B >= n || t.C >= n);
+        return triangles;
+    }
+
+    /// <summary>Tests whether point <paramref name="p"/> lies inside the circumcircle of triangle abc.</summary>
+    private static bool InCircumcircle(GraphNode a, GraphNode b, GraphNode c, GraphNode p)
+    {
+        double ax = a.X - p.X, ay = a.Y - p.Y;
+        double bx = b.X - p.X, by = b.Y - p.Y;
+        double cx = c.X - p.X, cy = c.Y - p.Y;
+
+        double det =
+            (ax * ax + ay * ay) * (bx * cy - cx * by) -
+            (bx * bx + by * by) * (ax * cy - cx * ay) +
+            (cx * cx + cy * cy) * (ax * by - bx * ay);
+
+        // The determinant test above assumes a, b, c are in counter-clockwise order;
+        // flip the comparison if they're wound clockwise.
+        double orientation = (b.X - a.X) * (c.Y - a.Y) - (c.X - a.X) * (b.Y - a.Y);
+        return orientation > 0 ? det > 0 : det < 0;
+    }
+
+    private static double Distance(GraphNode a, GraphNode b)
+    {
+        double dx = a.X - b.X, dy = a.Y - b.Y;
+        return Math.Sqrt(dx * dx + dy * dy);
     }
 }

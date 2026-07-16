@@ -1,36 +1,14 @@
 namespace DijkstraAnimation.App;
 
-/// <summary>Base type for animation steps produced by the Dijkstra solver.</summary>
-public abstract record AnimationStep;
-
-/// <summary>A node is dequeued and becomes the current focus.</summary>
-public sealed record VisitNodeStep(int NodeId, double Distance) : AnimationStep;
-
-/// <summary>An edge from the current node to a neighbor is examined.</summary>
-public sealed record ExamineEdgeStep(int EdgeIndex, int ToNode, double NewDistance, bool Improved) : AnimationStep;
-
-/// <summary>Processing of a node is complete; it is now settled.</summary>
-public sealed record SettleNodeStep(int NodeId) : AnimationStep;
-
-/// <summary>The shortest path has been found. Nodes and edges listed start-to-end.</summary>
-public sealed record ShowPathStep(IReadOnlyList<int> PathNodeIds, IReadOnlyList<int> PathEdgeIndices) : AnimationStep;
-
-/// <summary>The algorithm has finished.</summary>
-public sealed record AlgorithmDoneStep(bool PathFound) : AnimationStep;
-
-/// <summary>A pathfinding algorithm that produces a recorded sequence of animation steps.</summary>
-public interface IPathfindingSolver
+/// <summary>
+/// Runs A* search and records every step for animated replay, reusing the same
+/// <see cref="AnimationStep"/> vocabulary as <see cref="DijkstraSolver"/> so the existing
+/// playback/rendering code works unchanged. The heuristic is the straight-line (Euclidean)
+/// distance to the end node, which is admissible for non-negative edge weights.
+/// </summary>
+public sealed class AStarSolver : IPathfindingSolver
 {
-    /// <summary>A short display name for the algorithm, used in the UI.</summary>
-    string Name { get; }
-
-    List<AnimationStep> Solve(Graph graph, int startId, int endId);
-}
-
-/// <summary>Runs Dijkstra's algorithm and records every step for animated replay.</summary>
-public sealed class DijkstraSolver : IPathfindingSolver
-{
-    public string Name => "Dijkstra";
+    public string Name => "A*";
 
     public List<AnimationStep> Solve(Graph graph, int startId, int endId)
     {
@@ -43,9 +21,17 @@ public sealed class DijkstraSolver : IPathfindingSolver
         Array.Fill(dist, double.PositiveInfinity);
         Array.Fill(prev, -1);
 
+        double Heuristic(int nodeId)
+        {
+            var a = graph.Nodes[nodeId];
+            var b = graph.Nodes[endId];
+            double dx = a.X - b.X, dy = a.Y - b.Y;
+            return Math.Sqrt(dx * dx + dy * dy);
+        }
+
         dist[startId] = 0;
         var pq = new PriorityQueue<int, double>();
-        pq.Enqueue(startId, 0);
+        pq.Enqueue(startId, Heuristic(startId));
 
         while (pq.Count > 0)
         {
@@ -74,7 +60,7 @@ public sealed class DijkstraSolver : IPathfindingSolver
                 {
                     dist[neighbor] = newDist;
                     prev[neighbor] = u;
-                    pq.Enqueue(neighbor, newDist);
+                    pq.Enqueue(neighbor, newDist + Heuristic(neighbor));
                 }
             }
 

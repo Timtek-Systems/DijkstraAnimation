@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
 
@@ -16,6 +17,7 @@ public sealed class GraphCanvas : FrameworkElement
     private Graph? _graph;
     private NodeVisualState[]? _nodeStates;
     private EdgeVisualState[]? _edgeStates;
+    private double[]? _nodeDistances;
     private int _startNode = -1;
     private int _endNode = -1;
     private double _pulsePhase;
@@ -43,7 +45,11 @@ public sealed class GraphCanvas : FrameworkElement
     private static readonly Pen s_nodeStroke = FreezePen(Color.FromArgb(50, 255, 255, 255), 0.5);
     private static readonly Pen s_glowPen = FreezePen(Color.FromArgb(60, 255, 255, 255), 1.5);
 
-    private const double NodeRadius = 8; // world units
+    private static readonly Brush s_distanceText = Freeze(new SolidColorBrush(Colors.White));
+    private static readonly Typeface s_distanceTypeface = new(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
+
+    private const double NodeRadius = 16; // world units, enlarged to fit the distance label
+    private const double DistanceFontSize = 11;
 
     public Camera Camera { get; } = new();
 
@@ -54,6 +60,8 @@ public sealed class GraphCanvas : FrameworkElement
         _endNode = endNode;
         _nodeStates = new NodeVisualState[graph.Nodes.Count];
         _edgeStates = new EdgeVisualState[graph.Edges.Count];
+        _nodeDistances = new double[graph.Nodes.Count];
+        Array.Fill(_nodeDistances, double.PositiveInfinity);
         _nodeStates[startNode] = NodeVisualState.Start;
         _nodeStates[endNode] = NodeVisualState.End;
     }
@@ -61,6 +69,11 @@ public sealed class GraphCanvas : FrameworkElement
     public void SetNodeState(int nodeId, NodeVisualState state)
     {
         if (_nodeStates is not null) _nodeStates[nodeId] = state;
+    }
+
+    public void SetNodeDistance(int nodeId, double distance)
+    {
+        if (_nodeDistances is not null) _nodeDistances[nodeId] = distance;
     }
 
     public void SetEdgeState(int edgeIndex, EdgeVisualState state)
@@ -78,6 +91,7 @@ public sealed class GraphCanvas : FrameworkElement
         _graph = null;
         _nodeStates = null;
         _edgeStates = null;
+        _nodeDistances = null;
     }
 
     protected override void OnRender(DrawingContext dc)
@@ -181,7 +195,25 @@ public sealed class GraphCanvas : FrameworkElement
             }
 
             dc.DrawEllipse(fill, s_nodeStroke, center, NodeRadius, NodeRadius);
+
+            if (_nodeDistances is not null && double.IsFinite(_nodeDistances[i]))
+                DrawDistanceLabel(dc, center, _nodeDistances[i]);
         }
+    }
+
+    private static void DrawDistanceLabel(DrawingContext dc, Point center, double distance)
+    {
+        var formattedText = new FormattedText(
+            distance.ToString("0.#", CultureInfo.InvariantCulture),
+            CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            s_distanceTypeface,
+            DistanceFontSize,
+            s_distanceText,
+            1.0);
+
+        var origin = new Point(center.X - formattedText.Width / 2, center.Y - formattedText.Height / 2);
+        dc.DrawText(formattedText, origin);
     }
 
     private static T Freeze<T>(T freezable) where T : Freezable
