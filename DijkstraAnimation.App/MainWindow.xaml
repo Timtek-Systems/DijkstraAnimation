@@ -28,9 +28,12 @@
 
                 <TextBlock Text="Algorithm:" Foreground="#CCD" VerticalAlignment="Center"
                            Margin="0,0,6,0" FontSize="13"/>
-                <ComboBox x:Name="AlgorithmCombo" Width="100" VerticalAlignment="Center" Margin="0,0,24,0">
+                <ComboBox x:Name="AlgorithmCombo" Width="130" VerticalAlignment="Center" Margin="0,0,24,0">
                     <ComboBoxItem Content="Dijkstra" IsSelected="True"/>
                     <ComboBoxItem Content="A*"/>
+                    <ComboBoxItem Content="Bi-Dijkstra"/>
+                    <ComboBoxItem Content="Bellman-Ford"/>
+                    <ComboBoxItem Content="Johnson"/>
                 </ComboBox>
 
                 <Button x:Name="GenerateButton" Content="⚄  Generate" Padding="14,7"

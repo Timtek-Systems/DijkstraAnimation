@@ -41,6 +41,9 @@ public partial class MainWindow : Window
     // Switching is only permitted while no run is in progress.
     private readonly DijkstraSolver _dijkstraSolver = new();
     private readonly AStarSolver _aStarSolver = new();
+    private readonly BidirectionalDijkstraSolver _bidirectionalDijkstraSolver = new();
+    private readonly BellmanFordSolver _bellmanFordSolver = new();
+    private readonly JohnsonSolver _johnsonSolver = new();
     private IPathfindingSolver _solver = null!;
 
     private readonly Stopwatch _runStopwatch = new();
@@ -141,6 +144,9 @@ public partial class MainWindow : Window
         _solver = AlgorithmCombo.SelectedIndex switch
         {
             1 => _aStarSolver,
+            2 => _bidirectionalDijkstraSolver,
+            3 => _bellmanFordSolver,
+            4 => _johnsonSolver,
             _ => _dijkstraSolver
         };
     }
